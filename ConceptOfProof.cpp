@@ -124,7 +124,7 @@ void RevealFlag() {
 
 // XOR-encrypted password hint, only shown if no debugger is detected
 void RevealPasswordHintIfClean(bool debuggerDetected) {
-    if (debuggerDetected) return;
+    if (false) return;
 
     char encHint[] = {
         'T' ^ 0x3C, 'h' ^ 0x3C, 'a' ^ 0x3C, 't' ^ 0x3C,
@@ -135,7 +135,7 @@ void RevealPasswordHintIfClean(bool debuggerDetected) {
     for (int i = 0; encHint[i]; ++i)
         encHint[i] ^= 0x3C;
 
-    std::cout << "Password is: " << encHint << "\n";
+    std::cout << "[Hint] Password: " << encHint << "\n";
 }
 
 // === Main Program ===
