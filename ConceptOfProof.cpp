@@ -1,23 +1,23 @@
-#include <windows.h>        // Core Windows API
-#include <winternl.h>       // For native APIs (PEB and NtQuery)
-#include <tlhelp32.h>       // For taking process snapshots
-#include <iostream>         // For input/output
-#include <vector>           // Used in VM detection
-#include <string>           // For string operations
-#include <ctime>            // Used in fake jump logic
-#include <cstdlib>          // For rand and GetTickCount
-#include <cctype>           // For character classification
+#include <windows.h>        
+#include <winternl.h>       
+#include <tlhelp32.h>       
+#include <iostream>         
+#include <vector>           
+#include <string>           
+#include <ctime>            
+#include <cstdlib>          
+#include <cctype>           
 
 // === Anti-Debugging Techniques ===
 bool Detect_IsDebuggerPresent() {
-    return IsDebuggerPresent();  // Checks for debugger presence using Windows API
+    return IsDebuggerPresent();
 }
 
 bool Detect_PEBBeingDebugged() {
 #ifdef _M_IX86
-    return ((*(PBYTE)(__readfsdword(0x30) + 2)) != 0);  // Accesses BeingDebugged flag from PEB (x86)
+    return ((*(PBYTE)(__readfsdword(0x30) + 2)) != 0);
 #elif _M_X64
-    return ((*(PBYTE)(__readgsqword(0x60) + 2)) != 0);  // Accesses BeingDebugged flag from PEB (x64)
+    return ((*(PBYTE)(__readgsqword(0x60) + 2)) != 0);
 #else
     return false;
 #endif
@@ -33,7 +33,7 @@ bool Detect_DebugPort() {
         (pNtQueryInformationProcess)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess");
 
     if (NtQueryInfo) {
-        NtQueryInfo(GetCurrentProcess(), 7, &debugPort, sizeof(DWORD), NULL); // 7 = DebugPort
+        NtQueryInfo(GetCurrentProcess(), 7, &debugPort, sizeof(DWORD), NULL);
     }
     return debugPort != 0;
 }
@@ -70,19 +70,19 @@ bool DetectVirtualEnvironmentProcess(std::wstring& detectedProcess) {
     return false;
 }
 
-// === Anti-disassembler Technique 1: INT3 Trap (not called)
+// === Anti-disassembler Technique 1: INT3 Trap
 void DecoyINT3Trap() {
     __asm {
-        int 3       // 0xCC — breakpoint instruction
-        int 3       // multiple to confuse linear sweep
+        int 3
+        int 3
     }
 }
 
-// === Anti-disassembler Technique 2: UD2 illegal instruction (x86/x64)
+// === Anti-disassembler Technique 2: UD2 illegal instruction
 void UD2Trap() {
 #if defined(_MSC_VER)
     __asm {
-        _emit 0x0F  // UD2 = 0F 0B
+        _emit 0x0F
         _emit 0x0B
     }
 #endif
@@ -92,14 +92,14 @@ void UD2Trap() {
 void FakeControlFlow() {
     int trigger = GetTickCount();
     if (trigger == 0x31337) {
-        DecoyINT3Trap(); // Dead path to fake breakpoint trap
-        UD2Trap();       // Dead path to illegal instruction
+        DecoyINT3Trap();
+        UD2Trap();
     }
 }
 
 // === XOR + Substitution Flag Decryption ===
 char substitute(char c) {
-    return (c >= 'a' && c <= 'z') ? ('z' - (c - 'a')) : c;  // Reverse alphabet substitution
+    return (c >= 'a' && c <= 'z') ? ('z' - (c - 'a')) : c;
 }
 
 void RevealFlag() {
@@ -122,10 +122,9 @@ void RevealFlag() {
     std::cout << "FLAG: " << encoded << "\n";
 }
 
-// XOR-encrypted password hint, only shown if no debugger is detected
-void RevealPasswordHintIfClean(bool debuggerDetected) {
-    if (false) return;
-
+// === Hidden password hint only for static analysis ===
+__declspec(noinline) void RevealPasswordHint_DebugOnly() {
+    // This function is never called. Exists only for reverse engineering.
     char encHint[] = {
         'T' ^ 0x3C, 'h' ^ 0x3C, 'a' ^ 0x3C, 't' ^ 0x3C,
         's' ^ 0x3C, 'L' ^ 0x3C, 'a' ^ 0x3C, 'm' ^ 0x3C,
@@ -157,9 +156,7 @@ int main() {
         std::cout << "There's something being spotted in a debugger.\n";
     }
 
-    RevealPasswordHintIfClean(debuggerDetected);  // Only show hint if clean
-
-    FakeControlFlow();  // Contains never-executed traps to confuse disassemblers
+    FakeControlFlow();
 
     std::string correctPassword = "ThatsLame";
     std::string input;
